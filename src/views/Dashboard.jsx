@@ -18,7 +18,6 @@ const Dashboard = ({ routine = [] }) => {
   const dailyRoutine = routine.filter(ex => clean(ex.dia) === clean(selectedDay));
   const isRestDay = dailyRoutine.some(ex => clean(ex.grupomuscular).includes("descanso") || clean(ex.ejercicio) === "—");
 
-  // Lógica del Cronómetro de Entrenamiento Total
   useEffect(() => {
     let interval;
     if (isTraining && startTime) {
@@ -36,11 +35,30 @@ const Dashboard = ({ routine = [] }) => {
     return `${hrs > 0 ? hrs + ':' : ''}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // FUNCIÓN DE LIMPIEZA CORREGIDA
   const confirmClose = () => {
-    Object.keys(localStorage).forEach(k => (k.includes('finalized_') || k.includes('timer_')) && localStorage.removeItem(k));
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      // Borramos series, estados finalizados y registros de fecha
+      if (
+        key.startsWith('series_') || 
+        key.startsWith('finalized_') || 
+        key.startsWith('date_') ||
+        key.includes('timer_')
+      ) {
+        localStorage.removeItem(key);
+      }
+    });
+
     localStorage.removeItem('isTraining');
     localStorage.removeItem('startTime');
-    window.location.reload();
+    
+    // Resetear estados locales para que la UI se limpie al instante
+    setIsTraining(false);
+    setStartTime(null);
+    setShowSummary(false);
+    
+    window.location.reload(); // Recarga para asegurar que todo empiece de cero
   };
 
   return (
@@ -86,21 +104,40 @@ const Dashboard = ({ routine = [] }) => {
             </button>
           )}
           <div className="space-y-4">
-            {dailyRoutine.map((ex, i) => <ExerciseCard key={i} exercise={ex} isTraining={isTraining} />)}
+            {dailyRoutine.map((ex, i) => (
+              <ExerciseCard 
+                key={`${selectedDay}-${i}`} // Clave única por día para forzar refresco
+                exercise={ex} 
+                isTraining={isTraining} 
+              />
+            ))}
           </div>
         </>
       )}
 
-      {isTraining && (
-        <button onClick={() => setShowSummary(true)} className="w-full mt-12 bg-black text-white py-5 rounded-[28px] font-black uppercase italic tracking-widest">Finalizar</button>
+      {isTraining && !isRestDay && (
+        <button 
+          onClick={() => setShowSummary(true)} 
+          className="w-full mt-12 bg-black text-white py-5 rounded-[28px] font-black uppercase italic tracking-widest active:scale-95 transition-transform"
+        >
+          Finalizar Entrenamiento
+        </button>
       )}
 
       {showSummary && (
         <div className="fixed inset-0 bg-black/95 z-[200] flex items-center justify-center p-6 backdrop-blur-xl">
           <div className="bg-white rounded-[40px] p-10 w-full max-w-sm text-center">
-            <h2 className="text-3xl font-black mb-2 italic uppercase italic">¡Terminado!</h2>
-            <p className="text-xl font-mono font-black mb-6">{formatTime(elapsedTime)}</p>
-            <button onClick={confirmClose} className="w-full bg-[#32D74B] text-black py-5 rounded-[24px] font-black uppercase text-xs">Cerrar</button>
+            <h2 className="text-3xl font-black mb-2 italic uppercase">¡Sesión Terminada!</h2>
+            <div className="py-6">
+              <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Tiempo de Trabajo</p>
+              <p className="text-4xl font-mono font-black text-gray-900">{formatTime(elapsedTime)}</p>
+            </div>
+            <button 
+              onClick={confirmClose} 
+              className="w-full bg-[#32D74B] text-black py-5 rounded-[24px] font-black uppercase text-xs shadow-lg shadow-[#32D74B]/20"
+            >
+              Guardar y Salir
+            </button>
           </div>
         </div>
       )}
