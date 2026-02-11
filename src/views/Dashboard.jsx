@@ -8,7 +8,11 @@ const Dashboard = ({ routine = [] }) => {
     const days = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
     return days[new Date().getDay()];
   });
-
+useEffect(() => {
+  if ("Notification" in window) {
+    Notification.requestPermission();
+  }
+}, []);
   const [isTraining, setIsTraining] = useState(() => localStorage.getItem('isTraining') === 'true');
   const [startTime, setStartTime] = useState(() => parseInt(localStorage.getItem('startTime')) || null);
   const [elapsedTime, setElapsedTime] = useState(0);
